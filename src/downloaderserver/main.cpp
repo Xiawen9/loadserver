@@ -189,7 +189,7 @@ int main(int argc, char const *argv[])
 	struct sockaddr_in addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = inet_addr(remote_ip);
+	addr.sin_addr.s_addr = inet_addr(remote_ip_addr);
 	addr.sin_port = htons(port);
 
 	//连接远程主机
