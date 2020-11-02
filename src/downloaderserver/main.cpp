@@ -1,36 +1,12 @@
 ﻿#include <string>
 #include <winsock2.h>
+#include <iostream>
 #include "common.h"
 #include "parse.h"
 #include "server_def.h"
 
 #pragma comment(lib,"wsock32.lib")
 #pragma comment(lib,"ws2_32.lib")
-
-void get_ip_addr(char *host_name, char *ip_addr)
-{
-	/*通过域名得到相应的ip地址*/
-	WORD wVersionRequested;
-	WSADATA wsaData;
-	int ret;
-
-	//WinSock初始化
-	wVersionRequested = MAKEWORD(2, 2); //希望使用的WinSock DLL的版本
-	ret = WSAStartup(wVersionRequested, &wsaData);
-
-	struct hostent *host = gethostbyname(host_name);//此函数将会访问DNS服务器
-	if (!host)
-	{
-		ip_addr = NULL;
-		return;
-	}
-
-	for (int i = 0; host->h_addr_list[i]; i++)
-	{
-		strcpy(ip_addr, inet_ntoa(*(struct in_addr*) host->h_addr_list[i]));
-		break;
-	}
-}
 
 void progress_bar(long cur_size, long total_size, double speed)
 {
@@ -127,61 +103,59 @@ int main(int argc, char const *argv[])
 	/* 命令行参数: 接收两个参数, 第一个是下载地址, 第二个是文件的保存位置和名字, 下载地址是必须的, 默认下载到当前目录
 	 * 示例: ./download http://www.baidu.com baidu.html
 	 */
-	char url[URL_LEN] = "127.0.0.1";//设置默认地址为本机,
-	char remote_host_name[REMOTE_HOST_LEN] = { 0 };//远程主机地址
-	char remote_ip_addr[REMOTE_IP_LEN] = { 0 };//远程主机IP地址
-	int port = 80;//远程主机端口, http默认80端口
-	char file_name[FILE_NAME_LEN] = { 0 };//下载文件名
+	char url[URL_LEN] = { 0 };
+	char remote_host_name[REMOTE_HOST_LEN] = { 0 };
+	char remote_ip_addr[REMOTE_IP_LEN] = { 0 };
+	int remote_port = 80;//http默认80端口
+	char file_name[FILE_NAME_LEN] = { 0 };
 
 	if (argc == 1)
 	{
-		printf("您必须给定一个http地址才能开始工作\n");
+		std::cout << "您必须给定一个http地址才能开始工作\n" << std::endl;
 		exit(0);
 	}
 	else
 		strcpy(url, argv[1]);
 
-	puts("1: 正在解析下载地址...");
-	parse_url(url, remote_host_name, &port, file_name);//从url中分析出主机名, 端口号, 文件名
+	std::cout << "1: 正在解析下载地址..." << std::endl;
+	parse_url(url, remote_host_name, &remote_port, file_name);//从url中分析出主机名, 端口号, 文件名
 
 	if (argc == 3)
 	{
-		printf("\t您已经将下载文件名指定为: %s\n", argv[2]);
+		std::cout << "\t您已经将下载文件名指定为: " << argv[2] << std::endl;
 		strcpy(file_name, argv[2]);
 	}
 
-	puts("2: 正在获取远程服务器IP地址...");
+	std::cout << "2: 正在获取远程服务器IP地址..." << std::endl;
 	get_ip_addr(remote_host_name, remote_ip_addr);//调用函数同访问DNS服务器获取远程主机的IP
 	if (strlen(remote_ip_addr) == 0)
 	{
-		printf("错误: 无法获取到远程服务器的IP地址, 请检查下载地址的有效性\n");
+		std::cout << "错误: 无法获取到远程服务器的IP地址, 请检查下载地址的有效性\n" << std::endl;
 		return 0;
 	}
 
-	puts("\n>>>>下载地址解析成功<<<<");
-	printf("\t下载地址: %s\n", url);
-	printf("\t远程主机: %s\n", remote_host_name);
-	printf("\tIP 地 址: %s\n", remote_ip_addr);
-	printf("\t主机PORT: %d\n", port);
-	printf("\t 文件名 : %s\n\n", file_name);
+	std::cout << "\n>>>>下载地址解析成功<<<<" << std::endl;
+	std::cout << "\t下载地址: " << url << std::endl;
+	std::cout << "\t远程主机: " << remote_host_name << std::endl;
+	std::cout << "\tIP 地 址: " << remote_ip_addr << std::endl;
+	std::cout << "\t主机PORT: " << remote_port << std::endl;
+	std::cout << "\t文件名 : " << file_name << std::endl;
 
-	//设置http请求头信息
-	char header[2048] = { 0 };
+	char header[HTTP_HEADER_LEN] = { 0 };
 	sprintf(header, \
 		"GET %s HTTP/1.1\r\n"\
 		"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\n"\
-		"User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537(KHTML, like Gecko) Chrome/47.0.2526Safari/537.36\r\n"\
+		"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36(KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36\r\n"\
 		"Host: %s\r\n"\
 		"Connection: keep-alive\r\n"\
 		"\r\n"\
 		, url, remote_host_name);
 
-	puts("3: 创建网络套接字...");
-	//int client_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	std::cout << "3: 创建网络套接字..." << std::endl;
 	int client_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (client_socket < 0)
 	{
-		printf("套接字创建失败: %d\n", client_socket);
+		std::cout << "套接字创建失败: " << client_socket << std::endl;
 		exit(-1);
 	}
 
@@ -190,19 +164,18 @@ int main(int argc, char const *argv[])
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = inet_addr(remote_ip_addr);
-	addr.sin_port = htons(port);
+	addr.sin_port = htons(remote_port);
 
 	//连接远程主机
-	puts("4: 正在连接远程主机...");
+	std::cout << "4: 正在连接远程主机..." << std::endl;
 	int res = connect(client_socket, (struct sockaddr *) &addr, sizeof(addr));
 	if (res == -1)
 	{
-		printf("连接远程主机失败, error: %d\n", res);
+		std::cout << "连接远程主机失败, error: " << res << std::endl;
 		exit(-1);
 	}
 
-	puts("5: 正在发送http下载请求...");
-	//write(client_socket, header, strlen(header));//write系统调用, 将请求header发送给服务器
+	std::cout << "5: 正在发送http下载请求..." << std::endl;
 	send(client_socket, header, strlen(header), 0);
 
 	int mem_size = 4096*64;
@@ -212,8 +185,7 @@ int main(int argc, char const *argv[])
 	char *response = (char *)malloc(mem_size * sizeof(char));
 
 	//每次单个字符读取响应头信息
-	puts("6: 正在解析http响应头...");
-	//while ((len = read(client_socket, buf, 1)) != 0)
+	std::cout << "6: 正在解析http响应头..." << std::endl;
 	while ((len = recv(client_socket, buf, mem_size, 0)) != 0)
 	{
 		if (length + len > mem_size)
@@ -223,7 +195,7 @@ int main(int argc, char const *argv[])
 			char * temp = (char *)realloc(response, sizeof(char) * mem_size);
 			if (temp == NULL)
 			{
-				printf("动态内存申请失败\n");
+				std::cout << "动态内存申请失败" << std::endl;
 				exit(-1);
 			}
 			response = temp;
@@ -243,28 +215,27 @@ int main(int argc, char const *argv[])
 
 	struct HTTP_RES_HEADER resp = parse_header(response);
 
-	printf("\n>>>>http响应头解析成功:<<<<\n");
+	std::cout << "\n>>>>http响应头解析成功:<<<<\n" << std::endl;
 
-	printf("\tHTTP响应代码: %d\n", resp.status_code);
+	std::cout << "\tHTTP响应代码: " << resp.status_code << std::endl;
 	if (resp.status_code != 200)
 	{
-		printf("文件无法下载, 远程主机返回: %d\n", resp.status_code);
+		std::cout << "文件无法下载, 远程主机返回: " << resp.status_code << std::endl;
 		return 0;
 	}
-	printf("\tHTTP文档类型: %s\n", resp.content_type);
-	printf("\tHTTP主体长度: %ld字节\n\n", resp.content_length);
+	std::cout << "\tHTTP文档类型: " << resp.content_type << std::endl;
+	std::cout << "\tHTTP主体长度: " << resp.content_length << "字节" << std::endl;
 
-
-	printf("7: 开始文件下载...\n");
+	std::cout << "7: 开始文件下载..." << std::endl;
 	download(client_socket, file_name, resp.content_length);
-	printf("8: 关闭套接字\n");
+	std::cout << "8: 关闭套接字" << std::endl;
 
 	if (resp.content_length == get_file_size(file_name))
-		printf("\n文件%s下载成功! ^_^\n\n", file_name);
+		std::cout << "\n文件 " << file_name << "下载成功! ^_^\n" << std::endl;
 	else
 	{
 		remove(file_name);
-		printf("\n文件下载中有字节缺失, 下载失败, 请重试!\n\n");
+		std::cout << "\n文件下载中有字节缺失, 下载失败, 请重试!\n" << std::endl;
 	}
 	shutdown(client_socket, 2);//关闭套接字的接收和发送
 	return 0;

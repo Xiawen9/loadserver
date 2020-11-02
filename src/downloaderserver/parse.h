@@ -29,7 +29,7 @@ void parse_url(const char *url, char *host, int *port, char *file_name)
 	/*通过url解析出域名, 端口, 以及文件名*/
 	int j = 0;
 	int start = 0;
-	*port = 80;
+	//*port = 80;
 	char *patterns[] = { "http://", "https://", NULL };
 
 	for (int i = 0; patterns[i]; i++)//分离下载地址中的http协议
@@ -70,6 +70,27 @@ void parse_url(const char *url, char *host, int *port, char *file_name)
 			file_name[j++] = url[i];
 	}
 	file_name[j] = '\0';
+}
+
+
+void get_ip_addr(char *host_name, char *ip_addr)
+{
+	WORD wVersionRequested = MAKEWORD(2, 2);
+	WSADATA wsaData;
+	int ret = WSAStartup(wVersionRequested, &wsaData);
+
+	struct hostent *host = gethostbyname(host_name);
+	if (!host)
+	{
+		ip_addr = NULL;
+		return;
+	}
+
+	for (int i = 0; host->h_addr_list[i]; i++)
+	{
+		strcpy(ip_addr, inet_ntoa(*(struct in_addr*) host->h_addr_list[i]));
+		break;
+	}
 }
 
 #endif // !_PARSE_H_
