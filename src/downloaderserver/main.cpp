@@ -1,94 +1,11 @@
 ﻿#include <string>
 #include <winsock2.h>
-#include "http_header.h"
+#include "common.h"
+#include "parse.h"
+#include "server_def.h"
 
 #pragma comment(lib,"wsock32.lib")
 #pragma comment(lib,"ws2_32.lib")
-
-void parse_url(const char *url, char *host, int *port, char *file_name)
-{
-	/*通过url解析出域名, 端口, 以及文件名*/
-	int j = 0;
-	int start = 0;
-	*port = 80;
-	char *patterns[] = { "http://", "https://", NULL };
-
-	for (int i = 0; patterns[i]; i++)//分离下载地址中的http协议
-		if (strncmp(url, patterns[i], strlen(patterns[i])) == 0)
-			start = strlen(patterns[i]);
-
-	//解析域名, 这里处理时域名后面的端口号会保留
-	for (int i = start; url[i] != '/' && url[i] != '\0'; i++, j++)
-		host[j] = url[i];
-	host[j] = '\0';
-
-	//解析端口号, 如果没有, 那么设置端口为80
-	char *pos = strstr(host, ":");
-	if (pos)
-		sscanf(pos, ":%d", port);
-
-	//删除域名端口号
-	for (int i = 0; i < (int)strlen(host); i++)
-	{
-		if (host[i] == ':')
-		{
-			host[i] = '\0';
-			break;
-		}
-	}
-
-	//获取下载文件名
-	j = 0;
-	for (int i = start; url[i] != '\0'; i++)
-	{
-		if (url[i] == '/')
-		{
-			if (i != strlen(url) - 1)
-				j = 0;
-			continue;
-		}
-		else
-			file_name[j++] = url[i];
-	}
-	file_name[j] = '\0';
-}
-
-char *strStr(const char *str1, const char *str2) {
-	if (*str2) {
-		while (*str1) {
-			for (int i = 0; *(str1 + i) == *(str2 + i); i++) {
-				if (!*(str2 + i + 1)) {
-					return (char *)str1;
-				}
-			}
-			str1++;
-		}
-		return NULL;
-	}
-	else {
-		return (char *)str1;
-	}
-}
-
-struct HTTP_RES_HEADER parse_header(const char *response)
-{
-	/*获取响应头的信息*/
-	struct HTTP_RES_HEADER resp;
-
-	char *pos = strStr(response, "HTTP/");
-	if (pos)//获取返回代码
-		sscanf(pos, "%*s %d", &resp.status_code);
-
-	pos = strStr(response, "Content-Type:");
-	if (pos)//获取返回文档类型
-		sscanf(pos, "%*s %s", resp.content_type);
-
-	pos = strStr(response, "Content-Length:");
-	if (pos)//获取返回文档长度
-		sscanf(pos, "%*s %ld", &resp.content_length);
-
-	return resp;
-}
 
 void get_ip_addr(char *host_name, char *ip_addr)
 {
@@ -210,9 +127,9 @@ int main(int argc, char const *argv[])
 	/* 命令行参数: 接收两个参数, 第一个是下载地址, 第二个是文件的保存位置和名字, 下载地址是必须的, 默认下载到当前目录
 	 * 示例: ./download http://www.baidu.com baidu.html
 	 */
-	char url[2048] = "127.0.0.1";//设置默认地址为本机,
-	char host[64] = { 0 };//远程主机地址
-	char ip_addr[16] = { 0 };//远程主机IP地址
+	char url[URL_LEN] = "127.0.0.1";//设置默认地址为本机,
+	char remote_addr_len[REMOTE_ADDR_LEN] = { 0 };//远程主机地址
+	char ip_addr[IP_ADDR_LEN] = { 0 };//远程主机IP地址
 	int port = 80;//远程主机端口, http默认80端口
 	char file_name[256] = { 0 };//下载文件名
 
@@ -225,7 +142,7 @@ int main(int argc, char const *argv[])
 		strcpy(url, argv[1]);
 
 	puts("1: 正在解析下载地址...");
-	parse_url(url, host, &port, file_name);//从url中分析出主机名, 端口号, 文件名
+	parse_url(url, remote_addr_len, &port, file_name);//从url中分析出主机名, 端口号, 文件名
 
 	if (argc == 3)
 	{
@@ -234,7 +151,7 @@ int main(int argc, char const *argv[])
 	}
 
 	puts("2: 正在获取远程服务器IP地址...");
-	get_ip_addr(host, ip_addr);//调用函数同访问DNS服务器获取远程主机的IP
+	get_ip_addr(remote_addr_len, ip_addr);//调用函数同访问DNS服务器获取远程主机的IP
 	if (strlen(ip_addr) == 0)
 	{
 		printf("错误: 无法获取到远程服务器的IP地址, 请检查下载地址的有效性\n");
@@ -243,7 +160,7 @@ int main(int argc, char const *argv[])
 
 	puts("\n>>>>下载地址解析成功<<<<");
 	printf("\t下载地址: %s\n", url);
-	printf("\t远程主机: %s\n", host);
+	printf("\t远程主机: %s\n", remote_addr_len);
 	printf("\tIP 地 址: %s\n", ip_addr);
 	printf("\t主机PORT: %d\n", port);
 	printf("\t 文件名 : %s\n\n", file_name);
@@ -257,7 +174,7 @@ int main(int argc, char const *argv[])
 		"Host: %s\r\n"\
 		"Connection: keep-alive\r\n"\
 		"\r\n"\
-		, url, host);
+		, url, remote_addr_len);
 
 	puts("3: 创建网络套接字...");
 	//int client_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);

@@ -8,5 +8,5 @@ struct HTTP_RES_HEADER//保持相应头信息
 	long content_length;//Content-Length: 11683079
 };
 
-#endif // HTTP_HEADER_H
+#endif // !HTTP_HEADER_H
 
