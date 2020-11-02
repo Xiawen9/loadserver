@@ -128,10 +128,10 @@ int main(int argc, char const *argv[])
 	 * 示例: ./download http://www.baidu.com baidu.html
 	 */
 	char url[URL_LEN] = "127.0.0.1";//设置默认地址为本机,
-	char remote_addr_len[REMOTE_ADDR_LEN] = { 0 };//远程主机地址
-	char ip_addr[IP_ADDR_LEN] = { 0 };//远程主机IP地址
+	char remote_host[REMOTE_ADDR_LEN] = { 0 };//远程主机地址
+	char remote_ip[IP_ADDR_LEN] = { 0 };//远程主机IP地址
 	int port = 80;//远程主机端口, http默认80端口
-	char file_name[256] = { 0 };//下载文件名
+	char file_name[FILE_NAME_LEN] = { 0 };//下载文件名
 
 	if (argc == 1)
 	{
@@ -142,7 +142,7 @@ int main(int argc, char const *argv[])
 		strcpy(url, argv[1]);
 
 	puts("1: 正在解析下载地址...");
-	parse_url(url, remote_addr_len, &port, file_name);//从url中分析出主机名, 端口号, 文件名
+	parse_url(url, remote_host, &port, file_name);//从url中分析出主机名, 端口号, 文件名
 
 	if (argc == 3)
 	{
@@ -151,8 +151,8 @@ int main(int argc, char const *argv[])
 	}
 
 	puts("2: 正在获取远程服务器IP地址...");
-	get_ip_addr(remote_addr_len, ip_addr);//调用函数同访问DNS服务器获取远程主机的IP
-	if (strlen(ip_addr) == 0)
+	get_ip_addr(remote_host, remote_ip);//调用函数同访问DNS服务器获取远程主机的IP
+	if (strlen(remote_ip) == 0)
 	{
 		printf("错误: 无法获取到远程服务器的IP地址, 请检查下载地址的有效性\n");
 		return 0;
@@ -160,8 +160,8 @@ int main(int argc, char const *argv[])
 
 	puts("\n>>>>下载地址解析成功<<<<");
 	printf("\t下载地址: %s\n", url);
-	printf("\t远程主机: %s\n", remote_addr_len);
-	printf("\tIP 地 址: %s\n", ip_addr);
+	printf("\t远程主机: %s\n", remote_host);
+	printf("\tIP 地 址: %s\n", remote_ip);
 	printf("\t主机PORT: %d\n", port);
 	printf("\t 文件名 : %s\n\n", file_name);
 
@@ -174,7 +174,7 @@ int main(int argc, char const *argv[])
 		"Host: %s\r\n"\
 		"Connection: keep-alive\r\n"\
 		"\r\n"\
-		, url, remote_addr_len);
+		, url, remote_host);
 
 	puts("3: 创建网络套接字...");
 	//int client_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -189,7 +189,7 @@ int main(int argc, char const *argv[])
 	struct sockaddr_in addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = inet_addr(ip_addr);
+	addr.sin_addr.s_addr = inet_addr(remote_ip);
 	addr.sin_port = htons(port);
 
 	//连接远程主机
