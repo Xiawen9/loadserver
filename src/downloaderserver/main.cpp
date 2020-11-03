@@ -58,7 +58,7 @@ void download(int client_socket, char *file_name, long content_length)
 		exit(0);
 	}
 
-	char *buf = (char *)malloc(mem_size * sizeof(char));
+	char *pBuf = (char *)malloc(mem_size * sizeof(char));
 
 	//从套接字流中读取文件流
 	long diff = 0;
@@ -70,11 +70,11 @@ void download(int client_socket, char *file_name, long content_length)
 		//gettimeofday(&t_start, NULL); //获取开始时间
 		GetLocalTime(&t_start);
 		//len = read(client_socket, buf, buf_len);
-		len = recv(client_socket, buf, buf_len, 0);
+		len = recv(client_socket, pBuf, buf_len, 0);
 		//write(fd, buf, len);
 		SetFilePointer(hfile, 0, 0, FILE_BEGIN);  //将句柄指到文件首
 		DWORD dwWritten;     //保存写了多少字节到文件中
-		WriteFile(hfile, buf, len, &dwWritten, 0);
+		WriteFile(hfile, pBuf, len, &dwWritten, 0);
 		//gettimeofday(&t_end, NULL); //获取结束时间
 		GetLocalTime(&t_end);
 
@@ -142,7 +142,15 @@ int main(int argc, char const *argv[])
 	std::cout << "\t文件名 : " << file_name << std::endl;
 
 	char header[HTTP_HEADER_LEN] = { 0 };
-	sprintf(header, \
+	//sprintf(header, \
+	//	"GET %s HTTP/1.1\r\n"\
+	//	"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\n"\
+	//	"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36(KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36\r\n"\
+	//	"Host: %s\r\n"\
+	//	"Connection: keep-alive\r\n"\
+	//	"\r\n"\
+	//	, url, remote_host_name);
+		sprintf(header, \
 		"GET %s HTTP/1.1\r\n"\
 		"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\n"\
 		"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36(KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36\r\n"\
@@ -207,7 +215,7 @@ int main(int argc, char const *argv[])
 		//找到响应头的头部信息
 		int flag = 0;
 		for (int i = strlen(response) - 1; response[i] == '\n' || response[i] == '\r'; i--, flag++);
-		if (flag == 4)//连续两个换行和回车表示已经到达响应头的头尾, 即将出现的就是需要下载的内容
+		//if (flag == 4)//连续两个换行和回车表示已经到达响应头的头尾, 即将出现的就是需要下载的内容
 			break;
 
 		length += len;
